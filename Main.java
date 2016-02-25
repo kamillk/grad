@@ -1,116 +1,16 @@
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 public class Main {
 
-    public double[][] createDistanceMatrix(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, int method) {
+    public static void main(String[] args) throws Exception{
 
-        int index = 0;
-        int n = UserItemArray.size();
-        String[] conformityArray = new String[n];
-        double distanceMatrix[][] = new double[n][];
-
-        // create the triangular matrix
-        for (int i = 0; i < n; i++)
-        {
-            distanceMatrix[i] = new double[i];
-        }
-
-        // create matrix to conform username and id in distanceMatrix
-        Iterator it = UserItemArray.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry) it.next();
-            String userName = pair.getKey().toString();
-            conformityArray[index++] = userName;
-        }
-        // estimate measures
-        switch(method) {
-            case 1:
-                distanceMatrix = distanceMeasure(UserItemArray, uniqueItems, conformityArray, distanceMatrix, 1);
-                return distanceMatrix;
-            case 2:
-                distanceMatrix = distanceMeasure(UserItemArray, uniqueItems, conformityArray, distanceMatrix, 2);
-                return distanceMatrix;
-            case 3:
-                distanceMatrix = cosineMeasure(UserItemArray, uniqueItems, conformityArray, distanceMatrix);
-                return distanceMatrix;
-            default:
-                distanceMatrix = distanceMeasure(UserItemArray, uniqueItems, conformityArray, distanceMatrix, 1);
-                return distanceMatrix;
-        }
-    }
-
-    public double[][] distanceMeasure(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, String[] conformityArray, double distanceMatrix[][], int degree) {
-
-        int sum;
-        int n = UserItemArray.size();
-
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < i; ++j) {
-                sum = 0;
-                String firstUsername = conformityArray[i];
-                String secondUsername = conformityArray[j];
-                Map<String, Integer> first = UserItemArray.get(firstUsername);
-                Map<String, Integer> second = UserItemArray.get(secondUsername);
-                Iterator iterator = uniqueItems.iterator();
-                while (iterator.hasNext()) {
-                    String item = iterator.next().toString();
-                    if (first.containsKey(item) && !second.containsKey(item)) {
-                        sum += Math.pow(first.get(item), degree);
-                    }
-                    else if (!first.containsKey(item) && second.containsKey(item)) {
-                        sum += Math.pow(second.get(item), degree);
-                    }
-                    else if (first.containsKey(item) && second.containsKey(item)) {
-                        sum += Math.pow(Math.abs(first.get(item) - second.get(item)), degree);
-                    }
-                }
-                distanceMatrix[i][j] = Math.pow(sum, 1/degree);
-            }
-        }
-        return distanceMatrix;
-    }
-
-    public double[][] cosineMeasure(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, String[] conformityArray, double distanceMatrix[][]) {
-
-        int numerator, denominator1, denominator2;
-        int n = UserItemArray.size();
-
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < i; ++j) {
-                numerator = 0; denominator1 = 0; denominator2 = 0;
-                String firstUsername = conformityArray[i];
-                String secondUsername = conformityArray[j];
-                Map<String, Integer> first = UserItemArray.get(firstUsername);
-                Map<String, Integer> second = UserItemArray.get(secondUsername);
-                Iterator iterator = uniqueItems.iterator();
-                while (iterator.hasNext()) {
-                    String item = iterator.next().toString();
-                    if (first.containsKey(item) && !second.containsKey(item)) {
-                        denominator1 += Math.pow(first.get(item), 2);
-                    }
-                    else if (!first.containsKey(item) && second.containsKey(item)) {
-                        denominator2 += Math.pow(second.get(item), 2);
-                    }
-                    else if (first.containsKey(item) && second.containsKey(item)) {
-                        numerator += first.get(item) * second.get(item);
-                        denominator1 += Math.pow(first.get(item), 2);
-                        denominator2 += Math.pow(second.get(item), 2);
-                    }
-                }
-                distanceMatrix[i][j] = numerator / Math.sqrt(denominator1) / Math.sqrt(denominator2);
-            }
-        }
-        return distanceMatrix;
-    }
-
-    public static void main(String[] args) {
-
-        int pos, viewNumber = 0, index = 0, count = 0;
+        int pos, viewNumber = 0, index = 0, count = 0, norm = 1;
         char[] currentUser, currentItem;
-        double distanceMatrix[][];
+        double[][] distanceMatrix;
 
         currentUser = new char[100];
         currentItem = new char[100];
@@ -125,12 +25,12 @@ public class Main {
             Set<String> uniqueItems = new HashSet<>();
 
             reader.read(charData);
+
             // remain one space between user, item and number in each row
-            for (int i = 0; i < charData.length; i++) {
-                if (charData[i] == '\r' || charData[i] == '\t') {
-                    charData[i] = ' ';
-                }
-            }
+            String stringData = new String(charData);
+            stringData = stringData.trim().replaceAll("(\\s)+", "$1").replaceAll("\\t", " ");
+            charData = stringData.toCharArray();
+
             while (charData[index] != '\n' && index < charData.length) {
                 // read user
                 pos = 0;
@@ -160,21 +60,37 @@ public class Main {
                     rowMap.put(new String(currentItem), viewNumber);
                     UserItemArray.put(new String(currentUser), rowMap);
                 }
-                index += 2;
+                index ++;
             }
 
-            Main m = new Main();
-            // 3d parameter is the number of the selected method - 1 is distance measure with degree = 1, 2 is distance measure with degree = 2,
-            // 3 is cosine measure
-            distanceMatrix = m.createDistanceMatrix(UserItemArray, uniqueItems, 1);
+            System.out.println("Please, choose the metric (1 - Manhattan metric, 2 - Euclidean metric, 3 - Cosine measure): ");
+            Scanner sc = new Scanner(System.in);
+            int metric = sc.nextInt();
+            norm = metric;
 
-            for (int i = 0; i < UserItemArray.size(); ++i) {
-                for (int j = 0; j < i; ++j) {
+            DistanceClass distanceClass = new DistanceClass();
+            Method method = distanceClass.getClass().getMethod("createDistanceMatrix", new Class[] { Map.class, Set.class, List.class });
+
+            List<String> list = new ArrayList<>();
+            switch(metric) {
+                case 1:
+                case 2:
+                    list.add(new String("distanceMeasure"));
+                    list.add(String.valueOf(norm));
+                    break;
+                case 3:
+                    list.add(new String("cosineMeasure"));
+                    break;
+            }
+            Object[] params = new Object[] { UserItemArray, uniqueItems, list };
+            distanceMatrix = (double[][]) method.invoke(distanceClass, params);
+
+            for (int i = 0; i < 10; ++i) {
+                for (int j = 0; j <= i; ++j) {
                     System.out.print(distanceMatrix[i][j] + " ");
                 }
                 System.out.println("");
             }
-
         }
         catch(IOException ex){
 
