@@ -1,0 +1,89 @@
+import java.util.*;
+
+public class DistanceClass {
+
+    public double distanceMatrix[][] = new double[10000][];
+
+    public double[][] createDistanceMatrix(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, List<String> params) {
+
+        int index = 0;
+        int n = UserItemArray.size();
+        String[] conformityArray = new String[n];
+
+        // create the triangular matrix
+        for (int i = 0; i < n; i++)
+        {
+            distanceMatrix[i] = new double[i+1];
+        }
+
+        // create matrix to conform username and id in distanceMatrix
+        Iterator it = UserItemArray.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry) it.next();
+            String userName = pair.getKey().toString();
+            conformityArray[index++] = userName;
+        }
+        for (int i = 0; i < 10; ++i) {
+            for (int j = 0; j <= i; ++j) {
+
+                String firstUsername = conformityArray[i];
+                String secondUsername = conformityArray[j];
+                Map<String, Integer> first = UserItemArray.get(firstUsername);
+                Map<String, Integer> second = UserItemArray.get(secondUsername);
+                Iterator iterator = uniqueItems.iterator();
+
+                switch(params.get(0)) {
+                    case "distanceMeasure":
+                        distanceMeasure(iterator, first, second, Integer.parseInt(params.get(1)), i, j);
+                        break;
+                    case "cosineMeasure":
+                        cosineMeasure(iterator, first, second, i, j);
+                        break;
+                }
+
+            }
+        }
+        return distanceMatrix;
+    }
+
+    public void distanceMeasure(Iterator iterator, Map<String, Integer> first, Map<String, Integer> second, int degree, int i, int j) {
+
+        int sum = 0;
+        while (iterator.hasNext()) {
+            String item = iterator.next().toString();
+            if (first.containsKey(item) && !second.containsKey(item)) {
+                sum += Math.pow(first.get(item), degree);
+            } else if (!first.containsKey(item) && second.containsKey(item)) {
+                sum += Math.pow(second.get(item), degree);
+            } else if (first.containsKey(item) && second.containsKey(item)) {
+                sum += Math.pow(Math.abs(first.get(item) - second.get(item)), degree);
+            }
+        }
+        distanceMatrix[i][j] = Math.pow(sum, (float) (1 / degree));
+    }
+
+    public void cosineMeasure(Iterator iterator, Map<String, Integer> first, Map<String, Integer> second, int i, int j) {
+
+        if ( i == j) {
+            distanceMatrix[i][j] = 0;
+            return;
+        }
+
+        int numerator = 0, denominator1 = 0, denominator2 = 0;
+        while (iterator.hasNext()) {
+            String item = iterator.next().toString();
+            if (first.containsKey(item) && !second.containsKey(item)) {
+                denominator1 += Math.pow(first.get(item), 2);
+            }
+            else if (!first.containsKey(item) && second.containsKey(item)) {
+                denominator2 += Math.pow(second.get(item), 2);
+            }
+            else if (first.containsKey(item) && second.containsKey(item)) {
+                numerator += first.get(item) * second.get(item);
+                denominator1 += Math.pow(first.get(item), 2);
+                denominator2 += Math.pow(second.get(item), 2);
+            }
+        }
+        distanceMatrix[i][j] = 1 - (numerator / Math.sqrt(denominator1) / Math.sqrt(denominator2));
+    }
+}
