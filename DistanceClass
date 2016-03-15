@@ -2,7 +2,7 @@ import java.util.*;
 
 public class DistanceClass {
 
-    public double distanceMatrix[][] = new double[10000][];
+    public double distanceMatrix[][] = new double[200000][];
 
     public double[][] createDistanceMatrix(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, List<String> params) {
 
