@@ -1,7 +1,4 @@
-import javax.swing.text.html.HTMLDocument;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -12,59 +9,62 @@ public class Main {
         int pos, viewNumber = 0, index = 0, count = 0, norm = 1;
         char[] currentUser, currentItem;
         double[][] distanceMatrix;
+        Map<String, Map<String, Integer>> UserItemArray = new HashMap<String, Map<String, Integer>>();
+        Set<String> uniqueItems = new HashSet<>();
 
         currentUser = new char[100];
         currentItem = new char[100];
 
+        int myCount = 0;
+
         File file = new File("/Users/kamilla/Documents/Graduate work/data.txt");
 
-        try(FileReader reader = new FileReader(file))
+        try (BufferedReader br = new BufferedReader(new FileReader(file)))
         {
-            char[] charData = new char[(int)file.length()];
+            String stringData;
 
-            Map<String, Map<String, Integer>> UserItemArray = new HashMap<String, Map<String, Integer>>();
-            Set<String> uniqueItems = new HashSet<>();
+            while(br.read() != -1) {
+                stringData = br.readLine();
+                if (!stringData.isEmpty()) {
+                    // remain one space between user, item and number in each row
+                    stringData = stringData.trim().replaceAll("(\\s)+", "$1").replaceAll("\\t", " ");
+                    char[] charData = stringData.toCharArray();
+                    index = 0;
+                    // read user
+                    pos = 0;
+                    while (charData[index] != ' ') {
+                        currentUser[pos++] = charData[index++];
+                    }
+                    //currentUser[pos] = '\0';
+                    index++;
+                    // read item
+                    pos = 0;
+                    while (charData[index] != ' ') {
+                        currentItem[pos++] = charData[index++];
+                    }
+                    index++;
+                    // read view number
+                    viewNumber = Character.getNumericValue(charData[index++]);
 
-            reader.read(charData);
+                    myCount++;
 
-            // remain one space between user, item and number in each row
-            String stringData = new String(charData);
-            stringData = stringData.trim().replaceAll("(\\s)+", "$1").replaceAll("\\t", " ");
-            charData = stringData.toCharArray();
+                    uniqueItems.add(new String(currentItem));
 
-            while (charData[index] != '\n' && index < charData.length) {
-                // read user
-                pos = 0;
-                while (charData[index] != ' ' && index < charData.length) {
-                    currentUser[pos++] = charData[index++];
+                    // create the matrix in the form of
+                    // user1 : (item1, 1), (item3, 1), ...
+                    // user2: (item1, 2), ...
+                    if (UserItemArray.containsKey(new String(currentUser))) {
+                        UserItemArray.get(new String(currentUser)).put(new String(currentItem), viewNumber);
+                    } else {
+                        Map<String, Integer> rowMap = new HashMap<>();
+                        rowMap.put(new String(currentItem), viewNumber);
+                        UserItemArray.put(new String(currentUser), rowMap);
+                    }
                 }
-                index++;
-                // read item
-                pos = 0;
-                while (charData[index] != ' ' && index < charData.length) {
-                    currentItem[pos++] = charData[index++];
-                }
-                index++;
-                // read view number
-                viewNumber = Character.getNumericValue(charData[index++]);
-
-                uniqueItems.add(new String(currentItem));
-
-                // create the matrix in the form of
-                // user1 : (item1, 1), (item3, 1), ...
-                // user2: (item1, 2), ...
-                if (UserItemArray.containsKey(new String(currentUser))) {
-                    UserItemArray.get(new String(currentUser)).put(new String(currentItem), viewNumber);
-                }
-                else {
-                    Map<String, Integer> rowMap = new HashMap<>();
-                    rowMap.put(new String(currentItem), viewNumber);
-                    UserItemArray.put(new String(currentUser), rowMap);
-                }
-                index ++;
             }
+            System.out.println(myCount);
 
-            //check
+                //check
             /*int ff = 0, ind = 0;
             String item = "";
             int n = UserItemArray.size();
@@ -131,11 +131,67 @@ public class Main {
                 }
                 System.out.println("");
             }
-            //System.out.println(distanceMatrix[391][32]);
+                //System.out.println(distanceMatrix[391][32]);
+
         }
         catch(IOException ex){
 
             System.out.println(ex.getMessage());
         }
+
+
+        /*try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("/Users/kamilla/Documents/Graduate work/output.csv"), "UTF-8")) {
+
+            int n = UserItemArray.size();
+            String userName;
+            String[] conformityArray = new String[n];
+            String[] conformityItemArray = new String[2*n];
+            int ind = 0;
+            StringBuilder Ids = new StringBuilder();
+            Ids.append("Users");
+            Iterator it = UserItemArray.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                userName = pair.getKey().toString();
+                conformityArray[ind++] = userName;
+            }
+            int j = 0;
+            Iterator iter = uniqueItems.iterator();
+            while (iter.hasNext()) {
+                String item = iter.next().toString();
+                conformityItemArray[j++] = item;
+                Ids.append(",").append(item);
+            }
+            writer.write(Ids.toString());
+            writer.append('\n');
+
+            for (int i = 0; i < n; ++i) {
+                Ids = new StringBuilder();
+                userName = conformityArray[i];
+                Ids.append(userName);
+                Map<String, Integer> current = UserItemArray.get(userName);
+                iter = uniqueItems.iterator();
+                while (iter.hasNext()) {
+                    String item = iter.next().toString();
+                    if (!current.containsKey(item)) {
+                        Ids.append(",n/a");
+                    }
+                    else {
+                        Ids.append(",").append(String.valueOf(current.get(item)));
+                    }
+                }
+                writer.write(Ids.toString());
+                writer.append('\n');
+            }
+
+            writer.flush();
+
+        }
+        catch(IOException ex){
+
+            System.out.println(ex.getMessage());
+        }*/
+
+
     }
 }
