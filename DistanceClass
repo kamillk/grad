@@ -80,12 +80,12 @@ public class DistanceClass {
             degree = Integer.parseInt(params.get(1));
 
         // k is the number of combining iterations
-        for (int k = 0; k < 5; ++k) {
+        for (int k = 0; k < 100; ++k) {
 
             double max;
             int posj = 0;
             List<Pairs> rowMax = new ArrayList<>();
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < n; ++i) {
                 max = -1;
                 for (int j = 0; j < i; ++j) {
 
