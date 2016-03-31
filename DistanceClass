@@ -1,8 +1,11 @@
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.*;
 
 public class DistanceClass {
 
-    public double distanceMatrix[][] = new double[200000][];
+    public double distanceMatrix[][] = new double[6000][];
 
     public double[][] createDistanceMatrix(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, List<String> params) {
 
@@ -11,17 +14,19 @@ public class DistanceClass {
         String[] conformityArray = new String[n];
 
         // create the triangular matrix
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < 5000; i++)
         {
             distanceMatrix[i] = new double[i+1];
         }
 
         // create matrix to conform username and id in distanceMatrix
         Iterator it = UserItemArray.entrySet().iterator();
+        int k = 0;
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
             String userName = pair.getKey().toString();
             conformityArray[index++] = userName;
+            k++;
         }
 
         String metric = params.get(0);
@@ -42,7 +47,7 @@ public class DistanceClass {
                         break;
                     case "cosineMeasure":
                         distanceMatrix[i][j] = cosineMeasure(iterator, first, second);
-                        if ( i == j) {
+                        if (i == j) {
                             distanceMatrix[i][j] = 0;
                         }
                         break;
@@ -51,6 +56,127 @@ public class DistanceClass {
             }
         }
         return distanceMatrix;
+    }
+
+    public void completeLink(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, List<String> params) {
+
+        int degree = 1, index = 0;
+
+        double distance = 0;
+        int n = UserItemArray.size();
+        String[] conformityArray = new String[n];
+        List<List<Integer>> allClusters = new ArrayList<>();
+        List<Pairs> maxArray = new ArrayList<>();
+
+        Iterator it = UserItemArray.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry) it.next();
+            String userName = pair.getKey().toString();
+            conformityArray[index++] = userName;
+        }
+
+        String metric = params.get(0);
+        if (params.size() == 2)
+            degree = Integer.parseInt(params.get(1));
+
+        // k is the number of combining iterations
+        for (int k = 0; k < 5; ++k) {
+
+            double max;
+            int posj = 0;
+            List<Pairs> rowMax = new ArrayList<>();
+            for (int i = 0; i < 10; ++i) {
+                max = -1;
+                for (int j = 0; j < i; ++j) {
+
+                    Pairs currentPair = new Pairs(i, j);
+
+                    if (maxArray.isEmpty() || !maxArray.contains(currentPair)) {
+
+                        String firstUsername = conformityArray[i];
+                        String secondUsername = conformityArray[j];
+                        Map<String, Integer> first = UserItemArray.get(firstUsername);
+                        Map<String, Integer> second = UserItemArray.get(secondUsername);
+                        Iterator iterator = uniqueItems.iterator();
+
+                        switch (metric) {
+                            case "distanceMeasure":
+                                distance = distanceMeasure(iterator, first, second, degree);
+                                break;
+                            case "cosineMeasure":
+                                distance = cosineMeasure(iterator, first, second);
+                                break;
+                        }
+
+                        // find max distance in each row
+                        if (distance > max) {
+                            max = distance;
+                            posj = j;
+                        }
+                    }
+                }
+                // put maximum of each row in List
+                if (max != -1) {
+                    Pairs p = new Pairs(max, i, posj);
+                    rowMax.add(p);
+                }
+            }
+            // find overall maximum by searching the List of maximums
+            max = -1;
+            int posx = 0, posy = 0;
+            for (Pairs el : rowMax) {
+                if (el.value > max) {
+                    max = el.value;
+                    posx = el.x;
+                    posy = el.y;
+                }
+            }
+            // remember the indices of maximum
+            maxArray.add(new Pairs(posx, posy));
+
+            // create a new cluster if there are no clusters
+            if (allClusters.isEmpty()) {
+                List<Integer> newcluster = new ArrayList<>();
+                newcluster.add(posx);
+                newcluster.add(posy);
+                allClusters.add(newcluster);
+            }
+            // add one value to existing cluster or create the new one and put both values
+            else
+                for (List cluster: allClusters) {
+                    if (cluster.contains(posx) && !cluster.contains(posy)) {
+                        cluster.add(posy);
+                    }
+                    else if (cluster.contains(posy) && !cluster.contains(posx)) {
+                        cluster.add(posx);
+                    }
+                    else if (cluster.contains(posx) && cluster.contains(posy))
+                        break;
+                    else {
+                        List<Integer> newcluster = new ArrayList<>();
+                        newcluster.add(posx);
+                        newcluster.add(posy);
+                        allClusters.add(newcluster);
+                    }
+                }
+        }
+        int i = 1;
+        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("/Users/kamilla/Documents/Graduate work/clusters.txt"), "UTF-8")) {
+            for (List cluster: allClusters) {
+                writer.write("Cluster # " + i);
+                writer.append('\n');
+                i++;
+                for (Object elem : cluster) {
+                    writer.write(elem.toString());
+                    writer.append('\n');
+                }
+            }
+            writer.flush();
+        }
+        catch(IOException ex){
+
+            System.out.println(ex.getMessage());
+        }
     }
 
     public double distanceMeasure(Iterator iterator, Map<String, Integer> first, Map<String, Integer> second, int degree) {
