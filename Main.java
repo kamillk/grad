@@ -35,7 +35,6 @@ public class Main {
                     while (charData[index] != ' ') {
                         currentUser[pos++] = charData[index++];
                     }
-                    //currentUser[pos] = '\0';
                     index++;
                     // read item
                     pos = 0;
@@ -45,8 +44,8 @@ public class Main {
                     index++;
                     // read view number
                     viewNumber = Character.getNumericValue(charData[index++]);
-
-                    myCount++;
+                    //if (viewNumber == 1)
+                        myCount++;
 
                     uniqueItems.add(new String(currentItem));
 
@@ -108,7 +107,8 @@ public class Main {
             norm = metric;
 
             DistanceClass distanceClass = new DistanceClass();
-            Method method = distanceClass.getClass().getMethod("createDistanceMatrix", new Class[] { Map.class, Set.class, List.class });
+            //Method method = distanceClass.getClass().getMethod("createDistanceMatrix", new Class[] { Map.class, Set.class, List.class });
+            Method method = distanceClass.getClass().getMethod("completeLink", new Class[] { Map.class, Set.class, List.class });
 
             List<String> list = new ArrayList<>();
             switch(metric) {
@@ -122,16 +122,8 @@ public class Main {
                     break;
             }
             Object[] params = new Object[] { UserItemArray, uniqueItems, list };
-            distanceMatrix = (double[][]) method.invoke(distanceClass, params);
-
-            int n = UserItemArray.size();
-            for (int i = 0; i < 20; ++i) {
-                for (int j = 0; j <= i; ++j) {
-                    System.out.print(distanceMatrix[i][j] + " ");
-                }
-                System.out.println("");
-            }
-                //System.out.println(distanceMatrix[391][32]);
+            //distanceMatrix = (double[][]) method.invoke(distanceClass, params);
+            method.invoke(distanceClass, params);
 
         }
         catch(IOException ex){
@@ -140,7 +132,7 @@ public class Main {
         }
 
 
-        /*try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("/Users/kamilla/Documents/Graduate work/output.csv"), "UTF-8")) {
+        /*try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("/Users/kamilla/Documents/Graduate work/output2.csv"), "UTF-8")) {
 
             int n = UserItemArray.size();
             String userName;
@@ -165,25 +157,30 @@ public class Main {
             writer.write(Ids.toString());
             writer.append('\n');
 
+            int ccc = 0;
             for (int i = 0; i < n; ++i) {
                 Ids = new StringBuilder();
                 userName = conformityArray[i];
                 Ids.append(userName);
                 Map<String, Integer> current = UserItemArray.get(userName);
                 iter = uniqueItems.iterator();
-                while (iter.hasNext()) {
+                int k = 0;
+                while (k < 4) {
                     String item = iter.next().toString();
                     if (!current.containsKey(item)) {
-                        Ids.append(",n/a");
+                        Ids.append(",0");
                     }
                     else {
                         Ids.append(",").append(String.valueOf(current.get(item)));
+                        if (k == 3)
+                            ccc++;
                     }
+                    k++;
                 }
                 writer.write(Ids.toString());
                 writer.append('\n');
             }
-
+            System.out.println(ccc);
             writer.flush();
 
         }
