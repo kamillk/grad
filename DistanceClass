@@ -32,7 +32,7 @@ public class DistanceClass {
         String metric = params.get(0);
         if (params.size() == 2)
             degree = Integer.parseInt(params.get(1));
-        for (int i = 0; i < 20; ++i) {
+        for (int i = 0; i < n; ++i) {
             for (int j = 0; j <= i; ++j) {
 
                 String firstUsername = conformityArray[i];
@@ -61,12 +61,13 @@ public class DistanceClass {
     public void completeLink(Map<String, Map<String, Integer>> UserItemArray, Set<String> uniqueItems, List<String> params) {
 
         int degree = 1, index = 0;
+        int newId = 0;
 
         double distance = 0;
         int n = UserItemArray.size();
         String[] conformityArray = new String[n];
-        List<List<Integer>> allClusters = new ArrayList<>();
         List<Pairs> maxArray = new ArrayList<>();
+        List<Cluster> clusters = new ArrayList<>();
 
         Iterator it = UserItemArray.entrySet().iterator();
         while (it.hasNext()) {
@@ -80,12 +81,12 @@ public class DistanceClass {
             degree = Integer.parseInt(params.get(1));
 
         // k is the number of combining iterations
-        for (int k = 0; k < 100; ++k) {
+        for (int k = 0; k < 15; ++k) {
 
             double max;
             int posj = 0;
             List<Pairs> rowMax = new ArrayList<>();
-            for (int i = 0; i < n; ++i) {
+            for (int i = 0; i < 20; ++i) {
                 max = -1;
                 for (int j = 0; j < i; ++j) {
 
@@ -121,53 +122,68 @@ public class DistanceClass {
                     rowMax.add(p);
                 }
             }
-            // find overall maximum by searching the List of maximums
+            // find overall maximum by searching the List of maximums and remember pair of users - userIndex1, userIndex2
             max = -1;
-            int posx = 0, posy = 0;
-            for (Pairs el : rowMax) {
-                if (el.value > max) {
-                    max = el.value;
-                    posx = el.x;
-                    posy = el.y;
+            int userIndex1 = 0, userIndex2 = 0;
+            for (Pairs element : rowMax) {
+                if (element.value > max) {
+                    max = element.value;
+                    userIndex1 = element.x;
+                    userIndex2 = element.y;
                 }
             }
             // remember the indices of maximum
-            maxArray.add(new Pairs(posx, posy));
+            maxArray.add(new Pairs(userIndex1, userIndex2));
 
-            // create a new cluster if there are no clusters
-            if (allClusters.isEmpty()) {
-                List<Integer> newcluster = new ArrayList<>();
-                newcluster.add(posx);
-                newcluster.add(posy);
-                allClusters.add(newcluster);
-            }
+            // set a flag to check if user indices are in current clusters
+            // or we should create new cluster
+            boolean flag = false;
+
+            // create tree structure
+
             // add one value to existing cluster or create the new one and put both values
-            else
-                for (List cluster: allClusters) {
-                    if (cluster.contains(posx) && !cluster.contains(posy)) {
-                        cluster.add(posy);
-                    }
-                    else if (cluster.contains(posy) && !cluster.contains(posx)) {
-                        cluster.add(posx);
-                    }
-                    else if (cluster.contains(posx) && cluster.contains(posy))
+            if (!clusters.isEmpty()) {
+                for (Cluster cluster : clusters) {
+                    TreeNode node1 = new TreeNode(userIndex1);
+                    TreeNode node2 = new TreeNode(userIndex2);
+                    if (cluster.contains(node1) && !cluster.contains(node2)) {
+                        cluster.addNode(node2);
+                        flag = true;
                         break;
-                    else {
-                        List<Integer> newcluster = new ArrayList<>();
-                        newcluster.add(posx);
-                        newcluster.add(posy);
-                        allClusters.add(newcluster);
+                    }
+                    else if (cluster.contains(node2) && !cluster.contains(node1)) {
+                        cluster.addNode(node1);
+                        flag = true;
+                        break;
+                    }
+                    else if (cluster.contains(node1) && cluster.contains(node2)) {
+                        flag = true;
+                        break;
                     }
                 }
+                if (!flag) {
+                    Cluster cluster = new Cluster(newId++);
+                    cluster.addNodes(new TreeNode(userIndex1), new TreeNode(userIndex2));
+                    clusters.add(cluster);
+                }
+            }
+            // create a new cluster if there are no clusters
+            else {
+                Cluster cluster = new Cluster(newId++);
+                cluster.addNodes(new TreeNode(userIndex1), new TreeNode(userIndex2));
+                clusters.add(cluster);
+            }
         }
+
         int i = 1;
         try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("/Users/kamilla/Documents/Graduate work/clusters.txt"), "UTF-8")) {
-            for (List cluster: allClusters) {
+            for (Cluster cluster: clusters) {
                 writer.write("Cluster # " + i);
                 writer.append('\n');
                 i++;
-                for (Object elem : cluster) {
-                    writer.write(elem.toString());
+                List<TreeNode> vertices = cluster.getVertices();
+                for (TreeNode node : vertices) {
+                    writer.write(String.valueOf(node.getId()));
                     writer.append('\n');
                 }
             }
